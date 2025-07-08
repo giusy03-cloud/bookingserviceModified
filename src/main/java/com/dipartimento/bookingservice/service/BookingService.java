@@ -102,6 +102,11 @@ public class BookingService {
     public List<Booking> getBookingByEventId(Long id){
         return bookingRepository.findByEventId(id);
     }
+    public boolean hasUserBookedEvent(Long userId, Long eventId) {
+        List<Booking> bookings = bookingRepository.findByUserIdAndEventId(userId, eventId);
+        return !bookings.isEmpty();
+    }
+
 
 
 }

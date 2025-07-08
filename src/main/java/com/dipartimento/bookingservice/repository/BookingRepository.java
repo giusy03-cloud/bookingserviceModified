@@ -2,6 +2,7 @@ package com.dipartimento.bookingservice.repository;
 
 
 import com.dipartimento.bookingservice.domain.Booking;
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -18,4 +19,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     //Metodo peronalizzato che permette di cercare le prenotazioni di un evento dato:
     List<Booking> findByEventId(Long eventId);
+    List<Booking> findByUserIdAndEventId(Long userId, Long eventId);
+
+    @Transactional
+    void deleteByUserId(Long userId);
+
+
 }

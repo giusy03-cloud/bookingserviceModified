@@ -2,6 +2,7 @@ package com.dipartimento.bookingservice.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.config.Customizer;
@@ -22,6 +23,7 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.DELETE, "/api/bookings/user/**").hasRole("ORGANIZER") // solo DELETE su questa route richiede ruolo ORGANIZER
                         .requestMatchers("/api/bookings/**").authenticated()
                         .anyRequest().permitAll()
                 )

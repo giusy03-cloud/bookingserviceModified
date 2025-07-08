@@ -1,6 +1,7 @@
 package com.dipartimento.bookingservice.controller;
 
 import com.dipartimento.bookingservice.domain.Booking;
+import com.dipartimento.bookingservice.repository.BookingRepository;
 import com.dipartimento.bookingservice.security.util.JwtUtil;
 import com.dipartimento.bookingservice.service.BookingService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,9 @@ public class BookingController {
 
     @Autowired
     private BookingService bookingService;
+
+    @Autowired
+    private BookingRepository bookingRepository;
 
 
 
@@ -148,5 +152,47 @@ public class BookingController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyList());
         }
     }
+
+    // Endpoint usato dal ReviewService per verificare se un utente ha prenotato un evento
+    @GetMapping("/check")
+    public ResponseEntity<Boolean> hasUserBookedEvent(@RequestParam Long userId,
+                                                      @RequestParam Long eventId) {
+        try {
+            boolean hasBooked = bookingService.hasUserBookedEvent(userId, eventId);
+            return ResponseEntity.ok(hasBooked);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(false);
+        }
+    }
+
+
+    @DeleteMapping("/user/{userId}")
+    public ResponseEntity<?> deleteBookingsByUserId(@PathVariable Long userId,
+                                                    @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        System.out.println("[BookingController] Authorization header: " + authHeader);
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            System.out.println("[BookingController] Header Authorization mancante o malformato");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Header Authorization mancante o malformato");
+        }
+
+        String token = authHeader.replace("Bearer ", "");
+        String role = JwtUtil.extractUserRole(token);
+        System.out.println("[BookingController] Ruolo utente: " + role);
+
+        if (!"ORGANIZER".equals(role)) {
+            System.out.println("[BookingController] Utente non autorizzato");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Non sei autorizzato a cancellare queste prenotazioni");
+        }
+
+        System.out.println("[BookingController] Eliminazione prenotazioni per userId: " + userId);
+        bookingRepository.deleteByUserId(userId);
+        return ResponseEntity.ok("Prenotazioni eliminate");
+    }
+
+
+
+
 
 }

@@ -22,6 +22,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         String authHeader = request.getHeader("Authorization");
+        System.out.println("[JwtAuthenticationFilter] Authorization header: " + authHeader);
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
@@ -29,14 +30,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (JwtUtil.validateToken(token)) {
                 String username = JwtUtil.extractUsername(token);
                 String role = JwtUtil.extractUserRole(token);
+                System.out.println("[JwtAuthenticationFilter] User: " + username + ", Role: " + role);
 
                 SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role);
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(username, null, List.of(authority));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+            } else {
+                System.out.println("[JwtAuthenticationFilter] Token non valido");
             }
+        } else {
+            System.out.println("[JwtAuthenticationFilter] Header Authorization mancante o malformato");
         }
 
         filterChain.doFilter(request, response);
     }
 }
+
+
