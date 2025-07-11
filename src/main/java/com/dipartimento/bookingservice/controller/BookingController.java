@@ -21,6 +21,12 @@ public class BookingController {
 
     @Autowired
     private BookingRepository bookingRepository;
+    @Autowired
+    private JwtUtil jwtUtil;
+
+
+
+
 
 
 
@@ -28,21 +34,25 @@ public class BookingController {
     public ResponseEntity<String> createBooking(@RequestBody Booking booking, @RequestHeader("Authorization") String authHeader) {
         try {
             String token = authHeader.replace("Bearer ", "");
+            Long userIdFromToken = jwtUtil.extractUserId(token);
+            String role = jwtUtil.extractUserRole(token);
 
-            // 1. Verifica autenticazione utente
-            if (!bookingService.isUserAuthenticated(booking.getUserId(), token)) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utente non autorizzato");
+            // Controlla che solo i partecipanti possano prenotare
+            if (!"PARTICIPANT".equalsIgnoreCase(role)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Solo i partecipanti possono effettuare prenotazioni");
             }
 
-            // 2. Verifica se l'evento esiste
+            // Usa sempre l'userId estratto dal token
+            booking.setUserId(userIdFromToken);
+
+            // Verifica che l'evento esista
             if (!bookingService.isEventExists(booking.getEventId())) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Evento non trovato");
             }
 
-            // 3. Crea la prenotazione
             bookingService.createBooking(booking.getUserId(), booking.getEventId(), booking.getBookingTime());
-            return ResponseEntity.ok("Prenotazione effettuata con successo");
 
+            return ResponseEntity.ok("Prenotazione effettuata con successo");
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Errore durante la prenotazione");
