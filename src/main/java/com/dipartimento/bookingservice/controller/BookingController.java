@@ -30,6 +30,7 @@ public class BookingController {
 
 
 
+
     @PostMapping
     public ResponseEntity<String> createBooking(@RequestBody Booking booking, @RequestHeader("Authorization") String authHeader) {
         try {
@@ -37,22 +38,29 @@ public class BookingController {
             Long userIdFromToken = jwtUtil.extractUserId(token);
             String role = jwtUtil.extractUserRole(token);
 
-            // Controlla che solo i partecipanti possano prenotare
+            // ✅ Solo i partecipanti possono prenotare
             if (!"PARTICIPANT".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Solo i partecipanti possono effettuare prenotazioni");
             }
 
-            // Usa sempre l'userId estratto dal token
+            // ✅ Imposta l'ID utente dal token
             booking.setUserId(userIdFromToken);
 
-            // Verifica che l'evento esista
+            // ✅ Controlla che l'evento esista
             if (!bookingService.isEventExists(booking.getEventId())) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Evento non trovato");
             }
 
+            // ✅ Controllo capacità evento
+            if (bookingService.isEventFull(booking.getEventId())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Posti esauriti per questo evento");
+            }
+
+            // ✅ Crea la prenotazione
             bookingService.createBooking(booking.getUserId(), booking.getEventId(), booking.getBookingTime());
 
             return ResponseEntity.ok("Prenotazione effettuata con successo");
+
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Errore durante la prenotazione");
@@ -62,8 +70,8 @@ public class BookingController {
 
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteBooking(@PathVariable Long id,
-                                                @RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<Void> deleteBooking(@PathVariable Long id,
+                                              @RequestHeader("Authorization") String authHeader) {
         try {
             System.out.println("ID ricevuto per cancellazione: " + id);
 
@@ -74,7 +82,7 @@ public class BookingController {
             Booking booking = bookingService.getBookingById(id);
             if (booking == null) {
                 System.out.println("Booking con id " + id + " non trovato.");
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Prenotazione non trovata");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
 
             System.out.println("Role: '" + role + "'");
@@ -84,20 +92,21 @@ public class BookingController {
             System.out.println("Is organizer? " + "ORGANIZER".equals(role));
 
             if (!booking.getUserId().equals(userIdFromToken) && !"ORGANIZER".equals(role)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Non sei autorizzato a cancellare questa prenotazione");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
 
             boolean deleted = bookingService.deleteById(id);
-            return deleted
-                    ? ResponseEntity.ok("Prenotazione cancellata con successo!")
-                    : ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Errore nella cancellazione");
+            if (deleted) {
+                return ResponseEntity.noContent().build(); // 204 No Content
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Errore interno del server");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-
 
 
     @GetMapping
@@ -127,9 +136,11 @@ public class BookingController {
     public ResponseEntity<?> getBookingByUserId(@PathVariable Long userId,
                                                 @RequestHeader("Authorization") String authHeader) {
         String token = authHeader.replace("Bearer ", "");
+        Long userIdFromToken = JwtUtil.extractUserId(token);
         String role = JwtUtil.extractUserRole(token);
 
-        if (!"ORGANIZER".equals(role)) {
+        // Controllo autorizzazioni
+        if (!"ORGANIZER".equals(role) && !userIdFromToken.equals(userId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Non sei autorizzato a vedere queste prenotazioni");
         }
 
@@ -139,6 +150,7 @@ public class BookingController {
         }
         return ResponseEntity.ok(bookings);
     }
+
 
     @GetMapping("/event/{eventId}")
     public ResponseEntity<List<Booking>> getBookingByEventId(@PathVariable Long eventId,
@@ -199,6 +211,17 @@ public class BookingController {
         System.out.println("[BookingController] Eliminazione prenotazioni per userId: " + userId);
         bookingRepository.deleteByUserId(userId);
         return ResponseEntity.ok("Prenotazioni eliminate");
+    }
+
+    @GetMapping("/event/{eventId}/count")
+    public ResponseEntity<Integer> getBookingCountByEventId(@PathVariable Long eventId) {
+        try {
+            int count = bookingService.countBookingsByEventId(eventId);
+            return ResponseEntity.ok(count);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(0);
+        }
     }
 
 

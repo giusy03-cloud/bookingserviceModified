@@ -2,6 +2,7 @@ package com.dipartimento.bookingservice.service;
 
 
 import com.dipartimento.bookingservice.domain.Booking;
+import com.dipartimento.bookingservice.dto.EventDTO;
 import com.dipartimento.bookingservice.dto.UsersAccounts;
 import com.dipartimento.bookingservice.repository.BookingRepository;
 import io.jsonwebtoken.Claims;
@@ -106,6 +107,31 @@ public class BookingService {
         List<Booking> bookings = bookingRepository.findByUserIdAndEventId(userId, eventId);
         return !bookings.isEmpty();
     }
+
+    public boolean isEventFull(Long eventId) {
+        try {
+            // Recupera info evento
+            String url = EVENT_SERVICE_URL + "/" + eventId;
+            ResponseEntity<EventDTO> response = restTemplate.getForEntity(url, EventDTO.class);
+            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) return true;
+
+            EventDTO event = response.getBody();
+            int capacity = event.getCapacity();
+
+            // Conta prenotazioni
+            int bookingsCount = bookingRepository.findByEventId(eventId).size();
+
+            return bookingsCount >= capacity;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return true; // Se errore, meglio bloccare la prenotazione per sicurezza
+        }
+    }
+    public int countBookingsByEventId(Long eventId) {
+        return bookingRepository.countByEventId(eventId);
+    }
+
 
 
 
