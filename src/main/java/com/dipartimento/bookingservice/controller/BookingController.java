@@ -31,6 +31,7 @@ public class BookingController {
 
 
 
+
     @PostMapping
     public ResponseEntity<String> createBooking(@RequestBody Booking booking, @RequestHeader("Authorization") String authHeader) {
         try {
@@ -56,10 +57,18 @@ public class BookingController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Posti esauriti per questo evento");
             }
 
+            // ✅ Simulazione pagamento prima della prenotazione
+            double fakeAmount = 10.0; // puoi anche calcolarlo dinamicamente
+            boolean paymentSuccess = bookingService.processMockPayment(userIdFromToken, booking.getEventId(), fakeAmount);
+
+            if (!paymentSuccess) {
+                return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED).body("Pagamento simulato fallito. Prenotazione non effettuata.");
+            }
+
             // ✅ Crea la prenotazione
             bookingService.createBooking(booking.getUserId(), booking.getEventId(), booking.getBookingTime());
 
-            return ResponseEntity.ok("Prenotazione effettuata con successo");
+            return ResponseEntity.ok("Prenotazione e pagamento simulato effettuati con successo");
 
         } catch (Exception e) {
             e.printStackTrace();

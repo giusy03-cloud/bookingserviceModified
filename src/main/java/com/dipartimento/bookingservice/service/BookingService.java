@@ -133,6 +133,14 @@ public class BookingService {
     }
 
 
+    public boolean processMockPayment(Long userId, Long eventId, double amount) {
+        // Logica mock: pagamento sempre riuscito
+        System.out.println("[Payment] Pagamento simulato per utente " + userId + ", evento " + eventId + ", importo €" + amount);
+
+        // Se vuoi una simulazione più "reale", puoi anche usare un po' di casualità
+        return true;
+    }
+
 
 
 }
