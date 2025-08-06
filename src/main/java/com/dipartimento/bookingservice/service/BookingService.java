@@ -111,7 +111,8 @@ public class BookingService {
     public boolean isEventFull(Long eventId) {
         try {
             // Recupera info evento
-            String url = EVENT_SERVICE_URL + "/" + eventId;
+            String url = EVENT_SERVICE_URL + "/public/" + eventId;
+
             ResponseEntity<EventDTO> response = restTemplate.getForEntity(url, EventDTO.class);
             if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) return true;
 
