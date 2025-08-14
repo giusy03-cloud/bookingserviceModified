@@ -143,5 +143,16 @@ public class BookingService {
     }
 
 
+    public EventDTO getEventDetails(Long eventId) {
+        try {
+            String url = EVENT_SERVICE_URL + "/public/" + eventId;
+            ResponseEntity<EventDTO> response = restTemplate.getForEntity(url, EventDTO.class);
+            return response.getBody();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null; // oppure gestisci diversamente
+        }
+    }
+
 
 }

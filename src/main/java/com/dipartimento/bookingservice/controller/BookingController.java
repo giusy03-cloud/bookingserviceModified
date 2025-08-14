@@ -1,6 +1,8 @@
 package com.dipartimento.bookingservice.controller;
 
 import com.dipartimento.bookingservice.domain.Booking;
+import com.dipartimento.bookingservice.dto.BookingWithEventDTO;
+import com.dipartimento.bookingservice.dto.EventDTO;
 import com.dipartimento.bookingservice.repository.BookingRepository;
 import com.dipartimento.bookingservice.security.util.JwtUtil;
 import com.dipartimento.bookingservice.service.BookingService;
@@ -232,6 +234,38 @@ public class BookingController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(0);
         }
     }
+
+    @GetMapping("/user/{userId}/details")
+    public ResponseEntity<?> getBookingWithEventDetails(@PathVariable Long userId,
+                                                        @RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.replace("Bearer ", "");
+        Long userIdFromToken = JwtUtil.extractUserId(token);
+        String role = JwtUtil.extractUserRole(token);
+
+        if (!"ORGANIZER".equals(role) && !userIdFromToken.equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Non sei autorizzato a vedere queste prenotazioni");
+        }
+
+        List<Booking> bookings = bookingService.getBookingsByUserId(userId);
+        if (bookings.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
+        }
+
+        List<BookingWithEventDTO> detailedBookings = bookings.stream().map(booking -> {
+            EventDTO event = bookingService.getEventDetails(booking.getEventId());
+            BookingWithEventDTO dto = new BookingWithEventDTO();
+            dto.setBookingId(booking.getId());
+            dto.setUserId(booking.getUserId());
+            dto.setEventId(booking.getEventId());
+            dto.setBookingTime(booking.getBookingTime());
+            dto.setEvent(event);
+            return dto;
+        }).toList();
+
+        return ResponseEntity.ok(detailedBookings);
+    }
+
 
 
 
