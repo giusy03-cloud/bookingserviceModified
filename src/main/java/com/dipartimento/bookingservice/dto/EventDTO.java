@@ -17,8 +17,16 @@ public class EventDTO {
     private Integer capacity;
     private EventStatus status;
     private Long organizerId;
+    private String imageUrl; // <-- aggiunto
 
 
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
 
     // Getters and Setters
     public String getName() {

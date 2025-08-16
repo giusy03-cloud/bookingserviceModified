@@ -20,9 +20,7 @@ public class Booking {
     @Column(name = "event_id", nullable = false)
     private Long eventId; // viene da Event Service
 
-    //Per data e ora della prenotazione (opzionale):
-    @Column(name = "booking_time")
-    private LocalDateTime bookingTime = LocalDateTime.now();
+
 
     public Long getId() {
         return id;
@@ -48,11 +46,5 @@ public class Booking {
         this.eventId = eventId;
     }
 
-    public LocalDateTime getBookingTime() {
-        return bookingTime;
-    }
 
-    public void setBookingTime(LocalDateTime _bookingTime) {
-        bookingTime = _bookingTime;
-    }
 }

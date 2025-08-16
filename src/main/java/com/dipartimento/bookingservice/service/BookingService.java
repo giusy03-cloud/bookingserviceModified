@@ -2,6 +2,7 @@ package com.dipartimento.bookingservice.service;
 
 
 import com.dipartimento.bookingservice.domain.Booking;
+import com.dipartimento.bookingservice.dto.BookingWithEventDTO;
 import com.dipartimento.bookingservice.dto.EventDTO;
 import com.dipartimento.bookingservice.dto.UsersAccounts;
 import com.dipartimento.bookingservice.repository.BookingRepository;
@@ -65,11 +66,11 @@ public class BookingService {
     }
 
 
-    public Booking createBooking(Long userId, Long eventID, LocalDateTime bookingTime) {
+    public Booking createBooking(Long userId, Long eventID) {
         Booking booking = new Booking();
         booking.setUserId(userId);
         booking.setEventId(eventID);
-        booking.setBookingTime(bookingTime != null ? bookingTime : LocalDateTime.now());
+
         return bookingRepository.save(booking);
     }
 
@@ -143,15 +144,56 @@ public class BookingService {
     }
 
 
+
     public EventDTO getEventDetails(Long eventId) {
         try {
             String url = EVENT_SERVICE_URL + "/public/" + eventId;
             ResponseEntity<EventDTO> response = restTemplate.getForEntity(url, EventDTO.class);
-            return response.getBody();
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                return response.getBody();
+            } else {
+                System.out.println("Evento non trovato o errore per eventId " + eventId);
+                return null;
+            }
         } catch (Exception e) {
-            e.printStackTrace();
-            return null; // oppure gestisci diversamente
+            System.out.println("Errore durante il recupero evento " + eventId + ": " + e.getMessage());
+            return null;
         }
+    }
+
+
+
+    public BookingWithEventDTO getBookingWithEventDetails(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId).orElse(null);
+        if (booking == null) return null;
+
+        BookingWithEventDTO dto = new BookingWithEventDTO();
+        dto.setBookingId(booking.getId());
+        dto.setUserId(booking.getUserId());
+        dto.setEventId(booking.getEventId());
+
+
+        // Recupero i dettagli dell'evento
+        EventDTO event = getEventDetails(booking.getEventId());
+        dto.setEvent(event);
+
+        return dto;
+    }
+    public List<BookingWithEventDTO> getBookingsWithEventDetailsByUserId(Long userId) {
+        List<Booking> bookings = bookingRepository.findByUserId(userId);
+
+        return bookings.stream().map(booking -> {
+            BookingWithEventDTO dto = new BookingWithEventDTO();
+            dto.setBookingId(booking.getId());
+            dto.setUserId(booking.getUserId());
+            dto.setEventId(booking.getEventId());
+
+
+            EventDTO event = getEventDetails(booking.getEventId());
+            dto.setEvent(event);
+
+            return dto;
+        }).toList();
     }
 
 

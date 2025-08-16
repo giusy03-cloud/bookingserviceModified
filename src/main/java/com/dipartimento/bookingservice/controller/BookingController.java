@@ -6,6 +6,8 @@ import com.dipartimento.bookingservice.dto.EventDTO;
 import com.dipartimento.bookingservice.repository.BookingRepository;
 import com.dipartimento.bookingservice.security.util.JwtUtil;
 import com.dipartimento.bookingservice.service.BookingService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -68,7 +70,7 @@ public class BookingController {
             }
 
             // ✅ Crea la prenotazione
-            bookingService.createBooking(booking.getUserId(), booking.getEventId(), booking.getBookingTime());
+            bookingService.createBooking(booking.getUserId(), booking.getEventId());
 
             return ResponseEntity.ok("Prenotazione e pagamento simulato effettuati con successo");
 
@@ -252,16 +254,29 @@ public class BookingController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
         }
 
+
         List<BookingWithEventDTO> detailedBookings = bookings.stream().map(booking -> {
             EventDTO event = bookingService.getEventDetails(booking.getEventId());
+            ObjectMapper mapper = new ObjectMapper();
+            try {
+                String eventJson = mapper.writeValueAsString(event);
+                System.out.println("Booking " + booking.getId() + " -> Event JSON: " + eventJson);
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+                System.out.println("Errore nella serializzazione di EventDTO");
+            }
+
+
+
             BookingWithEventDTO dto = new BookingWithEventDTO();
             dto.setBookingId(booking.getId());
             dto.setUserId(booking.getUserId());
             dto.setEventId(booking.getEventId());
-            dto.setBookingTime(booking.getBookingTime());
+
             dto.setEvent(event);
             return dto;
         }).toList();
+
 
         return ResponseEntity.ok(detailedBookings);
     }
