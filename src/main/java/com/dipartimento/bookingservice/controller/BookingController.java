@@ -202,6 +202,7 @@ public class BookingController {
     }
 
 
+    /*
     @DeleteMapping("/user/{userId}")
     public ResponseEntity<?> deleteBookingsByUserId(@PathVariable Long userId,
                                                     @RequestHeader(value = "Authorization", required = false) String authHeader) {
@@ -225,6 +226,47 @@ public class BookingController {
         bookingRepository.deleteByUserId(userId);
         return ResponseEntity.ok("Prenotazioni eliminate");
     }
+
+     */
+
+    @DeleteMapping("/user/{userId}")
+    public ResponseEntity<?> deleteBookingsByUserId(
+            @PathVariable Long userId,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+
+        System.out.println("[BookingController] Authorization header: " + authHeader);
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Header Authorization mancante o malformato");
+        }
+
+        String token = authHeader.replace("Bearer ", "");
+        String role = JwtUtil.extractUserRole(token);
+        Long tokenUserId = JwtUtil.extractUserId(token); // Assumendo che JwtUtil estragga anche l'id dell'utente
+
+        System.out.println("[BookingController] Ruolo utente: " + role + ", userId: " + tokenUserId);
+
+        if ("ORGANIZER".equals(role)) {
+            // ORGANIZER può eliminare qualsiasi prenotazione
+            bookingRepository.deleteByUserId(userId);
+            return ResponseEntity.ok("Prenotazioni eliminate dall'ORGANIZER");
+        } else if ("PARTICIPANT".equals(role)) {
+            // PARTICIPANT può eliminare solo le proprie prenotazioni
+            if (!tokenUserId.equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body("Non sei autorizzato a cancellare le prenotazioni di altri utenti");
+            }
+
+            bookingRepository.deleteByUserId(userId);
+            return ResponseEntity.ok("Le tue prenotazioni sono state eliminate");
+        } else {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Ruolo utente non autorizzato");
+        }
+    }
+
+
 
     @GetMapping("/event/{eventId}/count")
     public ResponseEntity<Integer> getBookingCountByEventId(@PathVariable Long eventId) {
